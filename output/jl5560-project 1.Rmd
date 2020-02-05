@@ -1,0 +1,100 @@
+---
+ title: "A Data Story on Song Lyrics"
+ output: html_document
+---
+
+####Has it happened to you when a song was really speaking to you? Do you like some of your favorite songs for their lyrics? When you think of a particular music genre (e.g., classic rock), do you expect certain topics or sentiments for the lyrics?
+
+####The goal of this project is to look deeper into the patterns and characteristics of different types of song lyrics. Applying tools from natural language processing and text mining, students should derive interesting findings in this collection of song lyrics and write a "data story" that can be shared with a general audience.
+
+
+```{r}
+packages.used=c("tm", "tidytext","tidyverse","DT","wordcloud","scales","gridExtra","ngram","igraph","ggraph","rsconnect","RColorBrewer","dplyr")
+
+# check packages that need to be installed.
+packages.needed=setdiff(packages.used,intersect(installed.packages()[,1],packages.used))
+
+# install additional packages
+if(length(packages.needed)>0){
+  install.packages(packages.needed, dependencies = TRUE,repos='http://cran.us.r-project.org')
+}
+library(tm)
+library(tidytext)
+library(tidyverse)
+library(DT)
+library(wordcloud)
+library(scales)
+library(dplyr)
+library(RColorBrewer)
+```
+
+```{r}
+print(R.version)
+```
+
+```{r}
+mydata<-read.csv(file = "lyrics.csv",header = TRUE)
+```
+
+```{r}
+song<-mydata$song
+year<-mydata$year
+artist<-mydata$artist
+genre<-mydata$genre
+lyrics<-mydata$lyrics
+```
+
+```{r}
+levels(genre)
+table(genre)
+barplot(height = table(mydata$genre),names.arg = names(table(mydata$genre)))
+```
+
+```{r}
+corpus<-VCorpus(VectorSource(mydata$lyrics))%>%
+  tm_map(removePunctuation)%>%
+  tm_map(removeNumbers)%>%
+  tm_map(removeWords, character(0))%>%
+  tm_map(stripWhitespace)
+```
+
+```{r}
+tdm.all<-TermDocumentMatrix(corpus)
+tdm.tidy=tidy(tdm.all)
+tdm.overall=summarise(group_by(tdm.tidy, term), sum(count))
+```
+
+```{r}
+stemmed<-tm_map(corpus,stemDocument)%>%
+  tidy()%>%
+  select(text)
+```
+
+```{r}
+dict <- tidy(corpus) %>%
+  select(text) %>%
+  unnest_tokens(dictionary, text)
+```
+
+```{r}
+wordcloud(tdm.overall$term, tdm.overall$`sum(count)`,
+          scale=c(8,0.8),
+          max.words=100,
+          min.freq=1,
+          random.order=FALSE,
+          rot.per=0.1,
+          use.r.layout=T,
+          random.color=FALSE,
+          colors=brewer.pal(10,"Blues"))
+
+```
+
+####According to the wordcloud above, three words of most frequencies are "and", "the" and "you". We can also see some other words clearly in the cloud, like "when", "your", "all", "but", "that", "just", "know", "for" and "with". These words are all function words except for a special word "love". This phenomenon can be easily explained because most lyrics are similar to daily conversation, these words of high frequencies are also mostly used in our daily life according to the grammar. However, "love" can tell us something else. Songs are good ways for artists to express their own feelings, so they talk a lot about love in their lyrics. That's why people love songs, since they resonate with each other when singing a song with emotional lyrics.
+
+
+
+
+
+
+
+
